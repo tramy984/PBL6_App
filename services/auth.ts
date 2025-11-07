@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "./index";
 
 export interface LoginResponse {
@@ -20,5 +21,10 @@ export const login = async (
     username,
     password,
   });
+   const data = response.data;
+   if (data.success && data.token) {
+    await AsyncStorage.setItem("token", data.token);
+    await AsyncStorage.setItem("user_id", data.user.id);
+  }
   return response.data;
 };
