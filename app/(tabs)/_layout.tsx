@@ -16,7 +16,6 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}
     >
-      {/* Tab Home */}
       <Tabs.Screen
         name="home"
         options={{
@@ -25,7 +24,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab Cá nhân */}
       <Tabs.Screen
         name="student_infor"
         options={{

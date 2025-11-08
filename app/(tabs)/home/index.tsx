@@ -1,31 +1,31 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getStudentInfo, StudentProfile } from "../../services/Student_Infor";
-
-type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
+import { getStudentInfo, StudentProfile } from "../../../services/Student_Infor";
 
 interface MenuItem {
-  icon: IoniconName;
+  icon: string;
   label: string;
-  key: string; // thêm key để dễ kiểm soát menu
+  key: string;
+  navigateTo?: string;
 }
-
 
 export default function Home() {
   const [user, setUser] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const allMenuItems: MenuItem[] = [
     { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động" },
@@ -33,26 +33,22 @@ export default function Home() {
     { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng" },
     { key: "result", icon: "bar-chart-outline", label: "Kết quả điểm" },
     { key: "approve", icon: "checkmark-done-outline", label: "Duyệt minh chứng" },
-    { key: "password", icon: "lock-closed-outline", label: "Đổi mật khẩu" },
+    { key: "password", icon: "lock-closed-outline", label: "Đổi mật khẩu", navigateTo: "change_password" },
   ];
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const user_id = await AsyncStorage.getItem("user_id");
-        if (!user_id) {
-          console.warn("⚠️ Không tìm thấy user_id trong AsyncStorage");
-          return;
-        }
+        if (!user_id) return;
         const data = await getStudentInfo(user_id);
         setUser(data);
-      } catch (error) {
-        console.error("❌ Lỗi khi lấy thông tin sinh viên:", error);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchUserData();
   }, []);
 
@@ -68,17 +64,25 @@ export default function Home() {
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={{ textAlign: "center", marginTop: 50 }}>
-          Không tìm thấy thông tin sinh viên
-        </Text>
+        <Text style={{ textAlign: "center", marginTop: 50 }}>Không tìm thấy thông tin sinh viên</Text>
       </SafeAreaView>
     );
   }
 
-  // 🔹 Ẩn menu "Duyệt minh chứng" nếu không phải lớp trưởng
+  // Ẩn menu "Duyệt minh chứng" nếu không phải lớp trưởng
   const menuItems = user.isClassMonitor
     ? allMenuItems
     : allMenuItems.filter((item) => item.key !== "approve");
+
+  const handlePress = (item: MenuItem) => {
+    switch (item.navigateTo) {
+      case "change_password":
+        router.push("/home/change_password");
+        break;
+      default:
+        console.log("Chức năng chưa triển khai:", item.label);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,19 +106,11 @@ export default function Home() {
       </View>
 
       {/* Menu */}
-      <ScrollView
-        contentContainerStyle={styles.menuContainer}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
         {menuItems.map((item) => (
-          <TouchableOpacity key={item.key} style={styles.menuItem}>
+          <TouchableOpacity key={item.key} style={styles.menuItem} onPress={() => handlePress(item)}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name={item.icon}
-                size={28}
-                color="#2e5bff"
-                style={styles.menuIcon}
-              />
+              <Ionicons name={item.icon as any} size={28} color="#2e5bff" style={styles.menuIcon} />
               <Text style={styles.menuLabel}>{item.label}</Text>
             </View>
           </TouchableOpacity>

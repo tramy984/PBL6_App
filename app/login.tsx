@@ -1,7 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'; // lưu token cục bộ
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { login } from '../services/auth';
 
 export default function LoginScreen() {
@@ -12,21 +20,29 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert('Vui lòng nhập đầy đủ thông tin');
+      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
     try {
       setLoading(true);
-      const res = await login(username, password); 
 
-      await AsyncStorage.setItem('token', res.token);
+      //  Gọi API login
+      const res = await login(username, password);
 
-      Alert.alert('Đăng nhập thành công!');
-      router.replace("../(tabs)/home");
+      if (res.success && res.token) {
+        //  Lưu token (đã được lưu trong service nhưng có thể lưu lại để đảm bảo)
+        await AsyncStorage.setItem('token', res.token);
+        await AsyncStorage.setItem('user_id', res.user?.id || '');
+
+        Alert.alert('Thành công', 'Đăng nhập thành công!');
+        router.replace('../(tabs)/home');
+      } else {
+        Alert.alert('Thất bại', res.message || 'Sai tài khoản hoặc mật khẩu!');
+      }
     } catch (error: any) {
-      console.log(error);
-      Alert.alert('Sai tài khoản hoặc mật khẩu!');
+      console.error('Login Error:', error);
+      Alert.alert('Lỗi', 'Không thể kết nối đến server. Vui lòng thử lại sau!');
     } finally {
       setLoading(false);
     }
@@ -34,8 +50,8 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Image 
-        source={require("../assets/images/logo_dut.jpg")}
+      <Image
+        source={require('../assets/images/logo_dut.jpg')}
         style={styles.logo}
         resizeMode="contain"
       />
@@ -47,6 +63,7 @@ export default function LoginScreen() {
         placeholder="Tên đăng nhập"
         value={username}
         onChangeText={setUsername}
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -57,16 +74,20 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity 
-        style={[styles.button, loading && { opacity: 0.7 }]} 
+      <TouchableOpacity
+        style={[styles.button, loading && { opacity: 0.6 }]}
         onPress={handleLogin}
         disabled={loading}
+        activeOpacity={0.8}
       >
-        <Text style={styles.buttonText}>{loading ? "Đang xử lý..." : "Đăng nhập"}</Text>
+        <Text style={styles.buttonText}>
+          {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -75,18 +96,16 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
   },
-  // 🌟 STYLE MỚI CHO LOGO
   logo: {
-    width: 150, // Điều chỉnh kích thước
-    height: 150, // Điều chỉnh kích thước
-    marginBottom: 40, // Khoảng cách bên dưới logo
-    // Nếu bạn dùng logo không có nền, có thể bỏ 'backgroundColor'
+    width: 150,
+    height: 150,
+    marginBottom: 40,
   },
-  // -----------------------
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 30,
+    color: '#007AFF',
   },
   input: {
     width: '100%',
@@ -96,6 +115,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
     marginBottom: 15,
+    backgroundColor: '#f9f9f9',
   },
   button: {
     width: '100%',
@@ -103,7 +123,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10, // Thêm chút khoảng cách trên nút
+    marginTop: 10,
   },
   buttonText: {
     color: '#fff',

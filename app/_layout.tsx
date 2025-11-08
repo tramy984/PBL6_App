@@ -10,7 +10,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
-  // ✅ Kiểm tra token lưu trong AsyncStorage
+  //  Kiểm tra token lưu trong AsyncStorage
   useEffect(() => {
     const checkLogin = async () => {
       const token = await AsyncStorage.getItem("token");
