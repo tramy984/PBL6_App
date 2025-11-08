@@ -48,6 +48,9 @@ const StudentInfoScreen: React.FC = () => {
       }
       const data = await getStudentInfo(userId);
       setStudentInfo(data);
+       if (data._id) {
+        await AsyncStorage.setItem("student_id", data._id);
+      }
     } catch (err) {
       Alert.alert("Lỗi", "Không thể tải thông tin sinh viên");
     } finally {

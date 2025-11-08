@@ -3,14 +3,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getStudentInfo, StudentProfile } from "../../../services/Student_Infor";
@@ -30,7 +30,7 @@ export default function Home() {
   const allMenuItems: MenuItem[] = [
     { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động" },
     { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
-    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng" },
+    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng" ,navigateTo: "submit_evidence" },
     { key: "result", icon: "bar-chart-outline", label: "Kết quả điểm" },
     { key: "approve", icon: "checkmark-done-outline", label: "Duyệt minh chứng" },
     { key: "password", icon: "lock-closed-outline", label: "Đổi mật khẩu", navigateTo: "change_password" },
@@ -78,6 +78,9 @@ export default function Home() {
     switch (item.navigateTo) {
       case "change_password":
         router.push("/home/change_password");
+        break;
+       case "submit_evidence":
+        router.push("/home/submit_evidence");
         break;
       default:
         console.log("Chức năng chưa triển khai:", item.label);
