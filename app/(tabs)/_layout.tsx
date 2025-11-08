@@ -18,7 +18,7 @@ export default function TabLayout() {
     >
       {/* Tab Home */}
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <Ionicons size={28} name="home" color={color} />,
@@ -27,7 +27,7 @@ export default function TabLayout() {
 
       {/* Tab Cá nhân */}
       <Tabs.Screen
-        name="explore"
+        name="student_infor"
         options={{
           title: 'Cá nhân',
           tabBarIcon: ({ color }) => <Ionicons size={28} name="person-outline" color={color} />,

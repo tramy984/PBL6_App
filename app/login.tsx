@@ -23,7 +23,7 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('token', res.token);
 
       Alert.alert('Đăng nhập thành công!');
-      router.push('/(tabs)');
+      router.replace("../(tabs)/home");
     } catch (error: any) {
       console.log(error);
       Alert.alert('Sai tài khoản hoặc mật khẩu!');

@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getStudentInfo } from "../../services/Student_Infor";
+import { getStudentInfo, StudentProfile } from "../../services/Student_Infor";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -22,23 +22,6 @@ interface MenuItem {
   key: string; // thêm key để dễ kiểm soát menu
 }
 
-interface StudentProfile {
-  _id: string;
-  user_id: string;
-  student_code: string;
-  full_name: string;
-  gender?: string;
-  date_of_birth?: string;
-  faculty?: string;
-  major?: string;
-  class_name?: string;
-  isClassMonitor: boolean;
-  phone_number?: string;
-  email?: string;
-  address?: string;
-  avatar?: string;
-  [key: string]: any;
-}
 
 export default function Home() {
   const [user, setUser] = useState<StudentProfile | null>(null);

@@ -1,72 +1,62 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosResponse } from "axios";
 import api from "./index";
 
 export interface StudentProfile {
   _id: string;
-  user_id: string;
-  student_code: string;
+  user_id: any;
+  student_number: string;
   full_name: string;
   gender?: string;
   date_of_birth?: string;
-  faculty?: string;
-  major?: string;
-  class_name?: string;
+  falcuty_name?: string;
+  class_id?: {
+        _id: string;
+        name: string;
+        cohort_id?: { _id: string; year: number };
+        falcuty_id?: { _id: string; name: string };
+    };
   isClassMonitor: boolean;
-  phone_number?: string;
+  phone?: string;
   email?: string;
-  address?: string;
-  [key: string]: any; // cho phép thêm thuộc tính mở rộng
+  contact_address?: string;
+  [key: string]: any;
 }
 
-const API_BASE_URL = "/student-profiles"; 
+// Lấy token từ AsyncStorage để gửi kèm
+const getAuthHeaders = async () => {
+  const token = await AsyncStorage.getItem("token");
+  if (!token) throw new Error("Chưa đăng nhập");
+  return { Authorization: `Bearer ${token}` };
+};
 
-export const getStudentInfo = async (
-  user_id: string
-): Promise<StudentProfile> => {
+// Lấy thông tin sinh viên
+export const getStudentInfo = async (user_id: string): Promise<StudentProfile> => {
   try {
+    const headers = await getAuthHeaders();
     const response: AxiosResponse<{ data: StudentProfile }> = await api.get(
-      `${API_BASE_URL}/user/${user_id}`
+      `/student-profiles/user/${user_id}`,
+      { headers }
     );
     return response.data.data;
   } catch (error: any) {
     console.error("Lỗi khi lấy thông tin sinh viên:", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Status:", error.response.status);
-    } else if (error.request) {
-      console.error("Không nhận được phản hồi từ server:", error.request);
-    } else {
-      console.error("Lỗi khi tạo request:", error.message);
-    }
     throw error;
   }
 };
 
-export const updateStudentInfo = async (
-  studentData: StudentProfile
-): Promise<StudentProfile> => {
+// Cập nhật thông tin sinh viên
+export const updateStudentInfo = async (studentData: StudentProfile): Promise<StudentProfile> => {
   try {
+    const headers = await getAuthHeaders();
     const response: AxiosResponse<{ data: StudentProfile }> = await api.put(
-      `${API_BASE_URL}/${studentData._id}`,
-      studentData
+      `/student-profiles/${studentData._id}`,
+      studentData,
+      { headers }
     );
     return response.data.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Lỗi khi cập nhật thông tin sinh viên:", error);
-    throw error;
-  }
-};
-
-export const deleteStudentProfile = async (
-  studentId: string
-): Promise<{ message: string }> => {
-  try {
-    const response: AxiosResponse<{ message: string }> = await api.delete(
-      `${API_BASE_URL}/${studentId}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Lỗi khi xóa hồ sơ sinh viên:", error);
     throw error;
   }
 };
