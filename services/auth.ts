@@ -85,3 +85,13 @@ export const change_password = async ({
     };
   }
 };
+export const logout = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("user_id");
+    await AsyncStorage.removeItem("student_id"); // nếu bạn lưu student_id
+    console.log("User logged out successfully");
+  } catch (error) {
+    console.error("Logout error:", error);
+  }
+};
