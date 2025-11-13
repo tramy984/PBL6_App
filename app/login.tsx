@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
+  TouchableOpacity
 } from 'react-native';
 import { login } from '../services/auth';
 
@@ -27,11 +29,9 @@ export default function LoginScreen() {
     try {
       setLoading(true);
 
-      //  Gọi API login
       const res = await login(username, password);
 
       if (res.success && res.token) {
-        //  Lưu token (đã được lưu trong service nhưng có thể lưu lại để đảm bảo)
         await AsyncStorage.setItem('token', res.token);
         await AsyncStorage.setItem('user_id', res.user?.id || '');
 
@@ -49,48 +49,57 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('../assets/images/logo_dut.jpg')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-
-      <Text style={styles.title}>Đăng nhập</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Tên đăng nhập"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Mật khẩu"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && { opacity: 0.6 }]}
-        onPress={handleLogin}
-        disabled={loading}
-        activeOpacity={0.8}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0} // điều chỉnh khoảng cách
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.buttonText}>
-          {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <Image
+          source={require('../assets/images/logo_dut.jpg')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
+        <Text style={styles.title}>Đăng nhập</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Tên đăng nhập"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Mật khẩu"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && { opacity: 0.6 }]}
+          onPress={handleLogin}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
