@@ -30,7 +30,7 @@ export default function Home() {
   const allMenuItems: MenuItem[] = [
     { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động" },
     { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
-    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng" ,navigateTo: "evidence" },
+    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng", navigateTo: "evidence" },
     { key: "result", icon: "bar-chart-outline", label: "Kết quả điểm" },
     { key: "approve", icon: "checkmark-done-outline", label: "Duyệt minh chứng" },
     { key: "password", icon: "lock-closed-outline", label: "Đổi mật khẩu", navigateTo: "change_password" },
@@ -56,7 +56,7 @@ export default function Home() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#2e5bff" style={{ marginTop: 100 }} />
+        <ActivityIndicator size="large" color="#3f2b96" style={{ marginTop: 100 }} />
         <Text style={{ textAlign: "center", color: "#555" }}>Đang tải thông tin...</Text>
       </SafeAreaView>
     );
@@ -80,7 +80,7 @@ export default function Home() {
       case "change_password":
         router.push("/home/change_password");
         break;
-       case "evidence":
+      case "evidence":
         router.push("/home/evidence");
         break;
       default:
@@ -90,15 +90,13 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#2e5bff" barStyle="light-content" />
+      <StatusBar backgroundColor="#3f2b96" barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
         <Image
           source={{
-            uri:
-              user.avatar ||
-              "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg",
+            uri: user.avatar || "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg",
           }}
           style={styles.avatar}
         />
@@ -110,11 +108,18 @@ export default function Home() {
       </View>
 
       {/* Menu */}
-      <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.menuContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {menuItems.map((item) => (
-          <TouchableOpacity key={item.key} style={styles.menuItem} onPress={() => handlePress(item)}>
+          <TouchableOpacity
+            key={item.key}
+            style={styles.menuItem}
+            onPress={() => handlePress(item)}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name={item.icon as any} size={28} color="#2e5bff" style={styles.menuIcon} />
+              <Ionicons name={item.icon as any} size={28} color="#3f2b96" style={styles.menuIcon} />
               <Text style={styles.menuLabel}>{item.label}</Text>
             </View>
           </TouchableOpacity>
@@ -133,7 +138,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2e5bff",
+    backgroundColor: "#3f2b96",
     padding: 15,
     borderRadius: 10,
     marginHorizontal: 10,
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     fontSize: 14,
-    color: "#2e5bff",
+    color: "#3f2b96",
     flexShrink: 1,
   },
 });
