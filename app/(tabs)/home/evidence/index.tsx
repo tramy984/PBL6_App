@@ -1,23 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import password_pic from "../../../assets/images/password_pic.jpg";
-import { Evidence, getAllEvidences, submitEvidence } from "../../../services/evidence";
+import password_pic from "../../../../assets/images/password_pic.jpg";
+import { Evidence, getEvidencesByStudentId, submitEvidence } from "../../../../services/evidence";
 
 // ---------- Constants ----------
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -67,16 +68,30 @@ export default function SubmitEvidenceScreen() {
   // ---------- API Calls ----------
   const fetchEvidenceList = async () => {
     setLoading(true);
-    const res = await getAllEvidences();
-    if (res.success && res.data) {
-      setEvidenceList(res.data);
-      setFilteredList(res.data);
-      setMessage("");
-    } else {
+    try {
+      const studentId = await AsyncStorage.getItem("student_id");
+      if (!studentId) {
+        setMessageType("error");
+        setMessage("Không tìm thấy thông tin sinh viên. Vui lòng đăng nhập lại.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await getEvidencesByStudentId(studentId);
+      if (res.success && res.data) {
+        setEvidenceList(res.data);
+        setFilteredList(res.data);
+        setMessage("");
+      } else {
+        setMessageType("error");
+        setMessage(res.message || "Không thể lấy danh sách minh chứng");
+      }
+    } catch (err) {
       setMessageType("error");
-      setMessage(res.message || "Không thể lấy danh sách minh chứng");
+      setMessage("Lỗi khi tải dữ liệu.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSubmitEvidence = async () => {
@@ -93,26 +108,41 @@ export default function SubmitEvidenceScreen() {
     }
 
     setLoading(true);
-    const res = await submitEvidence({
-      name: activityName.trim(),
-      link: evidenceLink.trim(),
-      points: Number(points),
-    });
+    try {
+      const studentId = await AsyncStorage.getItem("student_id");
+      if (!studentId) {
+        setMessageType("error");
+        setMessage("Không tìm thấy thông tin sinh viên. Vui lòng đăng nhập lại.");
+        setLoading(false);
+        return;
+      }
 
-    if (res.success && res.data) {
-      const newList = [res.data, ...evidenceList];
-      setEvidenceList(newList);
-      setFilteredList(applyFilterToList(newList, { activity: filterActivity, status: filterStatus, sort: filterSort }));
-      setMessageType("success");
-      setMessage("Nộp minh chứng thành công!");
-      setActivityName("");
-      setEvidenceLink("");
-      setPoints("");
-    } else {
+      const res = await submitEvidence({
+        student_id: { _id: studentId } as any,
+        name: activityName.trim(),
+        link: evidenceLink.trim(),
+        points: Number(points),
+      });
+
+      if (res.success && res.data) {
+        const newList = [res.data, ...evidenceList];
+        setEvidenceList(newList);
+        setFilteredList(applyFilterToList(newList, { activity: filterActivity, status: filterStatus, sort: filterSort }));
+        setMessageType("success");
+        setMessage("Nộp minh chứng thành công!");
+        setActivityName("");
+        setEvidenceLink("");
+        setPoints("");
+      } else {
+        setMessageType("error");
+        setMessage(res.message || "Nộp minh chứng thất bại!");
+      }
+    } catch (error) {
       setMessageType("error");
-      setMessage(res.message || "Nộp minh chứng thất bại!");
+      setMessage("Đã xảy ra lỗi khi nộp minh chứng.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // ---------- Filter ----------
@@ -142,9 +172,12 @@ export default function SubmitEvidenceScreen() {
   };
 
   const handleViewDetails = (evidence: Evidence) => {
-    setSelectedEvidence(evidence);
-    setDetailModalVisible(true);
-  };
+  router.push({
+    pathname: "/(tabs)/home/evidence/evidence_details",
+    params: { evidenceId: evidence._id },
+  });
+};
+
 
   useEffect(() => {
     fetchEvidenceList();
@@ -175,6 +208,7 @@ export default function SubmitEvidenceScreen() {
       <ImageBackground source={password_pic} style={styles.background} resizeMode="cover">
         <View style={styles.overlay} />
 
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -225,26 +259,20 @@ export default function SubmitEvidenceScreen() {
               <Text style={styles.modalTitle}>Bộ lọc minh chứng</Text>
 
               {/* Trạng thái */}
-            <Text style={styles.modalLabel}>Trạng thái</Text>
-            <View style={styles.filterRow}>
-            {["all", "approved", "pending"].map((status) => (
-                <TouchableOpacity
-                key={status}
-                style={[styles.filterOption, (filterStatus === status || (status === "all" && !filterStatus)) && styles.filterOptionSelected]}
-                onPress={() => setFilterStatus(status === "all" ? "" : (status as "approved" | "pending"))}
-                >
-                <Text
-                    style={[
-                    styles.filterOptionText,
-                    (filterStatus === status || (status === "all" && !filterStatus)) && styles.filterOptionTextSelected,
-                    ]}
-                >
-                    {status === "approved" ? "Đã duyệt" : status === "pending" ? "Chờ duyệt" : "Tất cả"}
-                </Text>
-                </TouchableOpacity>
-            ))}
-            </View>
-
+              <Text style={styles.modalLabel}>Trạng thái</Text>
+              <View style={styles.filterRow}>
+                {["all", "approved", "pending"].map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[styles.filterOption, (filterStatus === status || (status === "all" && !filterStatus)) && styles.filterOptionSelected]}
+                    onPress={() => setFilterStatus(status === "all" ? "" : (status as "approved" | "pending"))}
+                  >
+                    <Text style={[styles.filterOptionText, (filterStatus === status || (status === "all" && !filterStatus)) && styles.filterOptionTextSelected]}>
+                      {status === "approved" ? "Đã duyệt" : status === "pending" ? "Chờ duyệt" : "Tất cả"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               <Text style={styles.modalLabel}>Sắp xếp</Text>
               <View style={styles.filterRow}>
@@ -307,7 +335,6 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   evidenceListCard: { backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 16, padding: 16 },
   listHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  flatList: { marginTop: 10 },
   evidenceItem: { backgroundColor: "#f9f9f9", borderRadius: 12, padding: 12, marginBottom: 10 },
   evidenceHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   evidenceName: { fontSize: 14, fontWeight: "600", color: "#333", flex: 1, marginRight: 8 },
@@ -317,7 +344,6 @@ const styles = StyleSheet.create({
   statusPending: { backgroundColor: "rgba(245,124,0,0.1)" },
   evidenceMeta: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
   evidenceDate: { fontSize: 12, color: "#555" },
-  evidencePoints: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
   evidenceActions: { alignItems: "flex-end", marginTop: 8 },
   btnView: { backgroundColor: COLORS.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
   btnViewText: { color: "#fff", fontSize: 12 },

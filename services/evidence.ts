@@ -49,17 +49,17 @@ export const getAllEvidences = async (): Promise<ApiResponse<Evidence[]>> => {
   }
 };
 
-// // Lấy chi tiết minh chứng theo ID
-// export const getEvidenceDetailsById = async (id: string): Promise<ApiResponse<Evidence>> => {
-//   try {
-//     const headers = await getAuthHeaders();
-//     const response: AxiosResponse<{ data: Evidence }> = await api.get(`/evidences/${id}`, { headers });
-//     return { success: true, data: response.data.data };
-//   } catch (error: any) {
-//     console.error(`Get evidence ${id} error:`, error);
-//     return { success: false, message: error.response?.data?.message || "Không thể lấy thông tin minh chứng." };
-//   }
-// };
+// Lấy chi tiết minh chứng theo ID
+export const getEvidenceDetailsById = async (id: string): Promise<ApiResponse<Evidence>> => {
+  try {
+    const headers = await getAuthHeaders();
+    const response: AxiosResponse<{ data: Evidence }> = await api.get(`/evidences/${id}`, { headers });
+    return { success: true, data: response.data.data };
+  } catch (error: any) {
+    console.error(`Get evidence ${id} error:`, error);
+    return { success: false, message: error.response?.data?.message || "Không thể lấy thông tin minh chứng." };
+  }
+};
 
 // Lấy minh chứng theo ID sinh viên
 export const getEvidencesByStudentId = async (studentId: string): Promise<ApiResponse<Evidence[]>> => {
@@ -114,18 +114,18 @@ export const updateEvidence = async (id: string, updatedData: Partial<Evidence>)
 // };
 
 // Duyệt minh chứng
-// export const approveEvidence = async (
-//   id: string,
-//   approveData: { status: "approved" | "rejected"; reason?: string }
-// ): Promise<ApiResponse<Evidence>> => {
-//   try {
-//     const headers = await getAuthHeaders();
-//     const response: AxiosResponse<{ data: Evidence }> = await api.put(`/evidences/${id}/approve`, approveData, {
-//       headers: { ...headers, "Content-Type": "application/json" },
-//     });
-//     return { success: true, data: response.data.data };
-//   } catch (error: any) {
-//     console.error(`Approve evidence ${id} error:`, error);
-//     return { success: false, message: error.response?.data?.message || "Không thể duyệt minh chứng." };
-//   }
-// };
+export const approveEvidence = async (
+  id: string,
+  approveData: { status: "approved" | "rejected"; reason?: string }
+): Promise<ApiResponse<Evidence>> => {
+  try {
+    const headers = await getAuthHeaders();
+    const response: AxiosResponse<{ data: Evidence }> = await api.put(`/evidences/${id}/approve`, approveData, {
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
+    return { success: true, data: response.data.data };
+  } catch (error: any) {
+    console.error(`Approve evidence ${id} error:`, error);
+    return { success: false, message: error.response?.data?.message || "Không thể duyệt minh chứng." };
+  }
+};

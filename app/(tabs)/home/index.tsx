@@ -30,7 +30,7 @@ export default function Home() {
   const allMenuItems: MenuItem[] = [
     { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động" },
     { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
-    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng" ,navigateTo: "submit_evidence" },
+    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng" ,navigateTo: "evidence" },
     { key: "result", icon: "bar-chart-outline", label: "Kết quả điểm" },
     { key: "approve", icon: "checkmark-done-outline", label: "Duyệt minh chứng" },
     { key: "password", icon: "lock-closed-outline", label: "Đổi mật khẩu", navigateTo: "change_password" },
@@ -43,6 +43,7 @@ export default function Home() {
         if (!user_id) return;
         const data = await getStudentInfo(user_id);
         setUser(data);
+        await AsyncStorage.setItem("student_id", data._id);
       } catch (err) {
         console.error(err);
       } finally {
@@ -79,8 +80,8 @@ export default function Home() {
       case "change_password":
         router.push("/home/change_password");
         break;
-       case "submit_evidence":
-        router.push("/home/submit_evidence");
+       case "evidence":
+        router.push("/home/evidence");
         break;
       default:
         console.log("Chức năng chưa triển khai:", item.label);
