@@ -28,7 +28,7 @@ export default function Home() {
   const router = useRouter();
 
   const allMenuItems: MenuItem[] = [
-    { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động" },
+    { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động",navigateTo: "manage_activity"  },
     { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
     { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng", navigateTo: "evidence" },
     { key: "result", icon: "bar-chart-outline", label: "Kết quả điểm" },
@@ -82,6 +82,9 @@ export default function Home() {
         break;
       case "evidence":
         router.push("/home/evidence");
+        break;
+      case "manage_activity":
+        router.push("/home/Manage_Activity");
         break;
       default:
         console.log("Chức năng chưa triển khai:", item.label);
