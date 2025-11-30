@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StatusBar,
@@ -13,7 +14,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getStudentInfo, StudentProfile } from "../../../services/Student_Infor";
+import {
+  getStudentInfo,
+  StudentProfile,
+} from "../../../services/Student_Infor";
 
 interface MenuItem {
   icon: string;
@@ -30,12 +34,55 @@ export default function Home() {
   const allMenuItems: MenuItem[] = [
     { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động" },
     { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
-    { key: "upload", icon: "cloud-upload-outline", label: "Nộp minh chứng", navigateTo: "evidence" },
-    { key: "result", icon: "bar-chart-outline", label: "Kết quả điểm" },
-    { key: "approve", icon: "checkmark-done-outline", label: "Duyệt minh chứng" },
-    { key: "password", icon: "lock-closed-outline", label: "Đổi mật khẩu", navigateTo: "change_password" },
+    {
+      key: "upload",
+      icon: "cloud-upload-outline",
+      label: "Nộp minh chứng",
+      navigateTo: "evidence",
+    },
+    {
+      key: "result",
+      icon: "bar-chart-outline",
+      label: "Kết quả điểm",
+      navigateTo: "pvcd_record",
+    },
+    {
+      key: "password",
+      icon: "lock-closed-outline",
+      label: "Đổi mật khẩu",
+      navigateTo: "change_password",
+    },
   ];
+  useEffect(() => {
+    const loadStudentInfo = async () => {
+      try {
+        setLoading(true);
 
+        // Lấy user_id từ AsyncStorage
+        const userId = await AsyncStorage.getItem("user_id");
+        if (!userId) {
+          Alert.alert("Lỗi", "Chưa đăng nhập");
+          return;
+        }
+
+        // Lấy thông tin sinh viên từ API
+        const data = await getStudentInfo(userId);
+        setUser(data);
+
+        // Lưu student_id vào AsyncStorage
+        if (data._id) {
+          await AsyncStorage.setItem("student_id", data._id);
+        }
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Lỗi", "Không thể tải thông tin sinh viên");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStudentInfo();
+  }, []);
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -56,8 +103,14 @@ export default function Home() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#3f2b96" style={{ marginTop: 100 }} />
-        <Text style={{ textAlign: "center", color: "#555" }}>Đang tải thông tin...</Text>
+        <ActivityIndicator
+          size="large"
+          color="#3f2b96"
+          style={{ marginTop: 100 }}
+        />
+        <Text style={{ textAlign: "center", color: "#555" }}>
+          Đang tải thông tin...
+        </Text>
       </SafeAreaView>
     );
   }
@@ -65,15 +118,15 @@ export default function Home() {
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={{ textAlign: "center", marginTop: 50 }}>Không tìm thấy thông tin sinh viên</Text>
+        <Text style={{ textAlign: "center", marginTop: 50 }}>
+          Không tìm thấy thông tin sinh viên
+        </Text>
       </SafeAreaView>
     );
   }
 
   // Ẩn menu "Duyệt minh chứng" nếu không phải lớp trưởng
-  const menuItems = user.isClassMonitor
-    ? allMenuItems
-    : allMenuItems.filter((item) => item.key !== "approve");
+  const menuItems = allMenuItems;
 
   const handlePress = (item: MenuItem) => {
     switch (item.navigateTo) {
@@ -82,6 +135,9 @@ export default function Home() {
         break;
       case "evidence":
         router.push("/home/evidence");
+        break;
+      case "pvcd_record":
+        router.push("/home/PVCD_Record");
         break;
       default:
         console.log("Chức năng chưa triển khai:", item.label);
@@ -96,7 +152,9 @@ export default function Home() {
       <View style={styles.header}>
         <Image
           source={{
-            uri: user.avatar || "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg",
+            uri:
+              user.avatar ||
+              "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg",
           }}
           style={styles.avatar}
         />
@@ -119,7 +177,12 @@ export default function Home() {
             onPress={() => handlePress(item)}
           >
             <View style={styles.menuItemLeft}>
-              <Ionicons name={item.icon as any} size={28} color="#3f2b96" style={styles.menuIcon} />
+              <Ionicons
+                name={item.icon as any}
+                size={28}
+                color="#3f2b96"
+                style={styles.menuIcon}
+              />
               <Text style={styles.menuLabel}>{item.label}</Text>
             </View>
           </TouchableOpacity>
