@@ -97,7 +97,6 @@ export const filterActivitiesByStudent = async (
         headers,
       });
 
-    console.log("Response filter:", response);
 
     return {
       success: true,

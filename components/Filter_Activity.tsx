@@ -1,7 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { getAllOrgUnits, OrgUnit } from '../services/Org';
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { getAllFaculties } from '../services/faculty';
+import { getAllFields } from '../services/Field';
+import { getAllOrgUnits } from '../services/Org';
+
+interface OrgUnit {
+  _id: string;
+  name: string;
+  type: 'faculty' | 'organization';
+}
+
+interface Field {
+  _id: string;
+  name: string;
+}
 
 interface FilterModalProps {
   isVisible: boolean;
@@ -10,189 +32,313 @@ interface FilterModalProps {
   initialFilters: Record<string, string | null>;
 }
 
-const filterOptions = {
-  status: ['Đã tham gia', 'Đã đăng ký', 'Chưa đăng ký'],
-  field: ['Công nghệ thông tin', 'Kinh tế', 'Thiết kế', 'Kỹ thuật'],
-};
+const statusOptions = ['Đã đăng ký', 'Đã được duyệt', 'Đã từ chối', 'Đã tham gia'];
 
-const FilterModal: React.FC<FilterModalProps> = ({ isVisible, onClose, onApply, initialFilters }) => {
-  const [filters, setFilters] = useState<Record<string, string | null>>(initialFilters);
-  const [searchText, setSearchText] = useState(initialFilters.search || '');
+export default function FilterModal({
+  isVisible,
+  onClose,
+  onApply,
+  initialFilters,
+}: FilterModalProps) {
+  const [filters, setFilters] = useState(initialFilters);
+
+  // searchText chính là title theo API
+  const [searchText, setSearchText] = useState(initialFilters.title || '');
+
+  const [fields, setFields] = useState<Field[]>([]);
   const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([]);
+
+  const fetchData = async () => {
+    try {
+      const [fieldRes, facultyRes, orgRes] = await Promise.all([
+        getAllFields(),
+        getAllFaculties(),
+        getAllOrgUnits(),
+      ]);
+
+      if (fieldRes.success && fieldRes.data) {
+        setFields(fieldRes.data);
+      }
+
+      const merged: OrgUnit[] = [];
+
+      if (facultyRes.success && facultyRes.data) {
+        facultyRes.data.forEach((f: any) =>
+          merged.push({
+            _id: f._id,
+            name: f.name,
+            type: 'faculty',
+          }),
+        );
+      }
+
+      if (orgRes.success && orgRes.data) {
+        orgRes.data.forEach((o: any) =>
+          merged.push({
+            _id: o._id,
+            name: o.name,
+            type: 'organization',
+          }),
+        );
+      }
+
+      setOrgUnits(merged);
+    } catch (err) {
+      console.error('[FilterModal] Fetch error:', err);
+    }
+  };
 
   useEffect(() => {
     if (isVisible) {
       setFilters(initialFilters);
-      setSearchText(initialFilters.search || '');
-      fetchOrgUnits();
+      setSearchText(initialFilters.title || '');
+      fetchData();
     }
-  }, [isVisible, initialFilters]);
+  }, [isVisible]);
 
-  const fetchOrgUnits = async () => {
-  const response = await getAllOrgUnits();
-  if (response.success && response.data) {
-    setOrgUnits(response.data);
-  } else {
-    setOrgUnits([]);
-    console.error(response.message || 'Lấy danh sách tổ chức thất bại');
-  }
-};
-
-  const toggleFilter = (category: string, value: string) => {
-    setFilters(prev => ({
+  const handleSelect = (key: string, value: string) => {
+    setFilters((prev) => ({
       ...prev,
-      [category]: prev[category] === value ? null : value,
+      [key]: prev[key] === value ? null : value,
     }));
   };
 
-  const handleSearchChange = (text: string) => setSearchText(text);
-
   const handleApply = () => {
-    onApply({ ...filters, search: searchText.trim() || null });
+    onApply({
+      status: filters.status || null,
+      org_unit_id: filters.org_unit_id || null,
+      field_id: filters.field_id || null,
+      title: searchText || null,
+    });
     onClose();
   };
 
   const handleReset = () => {
+    onApply({
+      status: null,
+      org_unit_id: null,
+      field_id: null,
+      title: null,
+    });
+
     setFilters({});
     setSearchText('');
+    onClose();
   };
 
-  const FilterPill: React.FC<{ category: string; value: string }> = ({ category, value }) => (
-    <TouchableOpacity
-      style={[styles.pill, filters[category] === value && styles.pillSelected]}
-      onPress={() => toggleFilter(category, value)}
-    >
-      <Text style={[styles.pillText, filters[category] === value && styles.pillTextSelected]}>
-        {value}
-      </Text>
-      {filters[category] === value && <Ionicons name="checkmark" size={16} color="#fff" style={styles.pillIcon} />}
-    </TouchableOpacity>
-  );
-
-  const getSelectedCount = () =>
-    Object.keys(filters).filter(k => filters[k] !== null && k !== 'search').length + (searchText.trim() ? 1 : 0);
-
   return (
-    <Modal animationType="slide" transparent visible={isVisible} onRequestClose={onClose}>
+    <Modal visible={isVisible} transparent animationType="slide">
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* Header */}
+        <View style={styles.modalBox}>
+          {/* HEADER */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="chevron-down" size={24} color="#666" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Bộ lọc & Tìm kiếm</Text>
-            <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
-              <Text style={styles.resetText}>Đặt lại</Text>
+            <Text style={styles.headerTitle}>Bộ lọc</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={26} color="#444" />
             </TouchableOpacity>
           </View>
 
-          {/* Filter Content */}
-          <ScrollView contentContainerStyle={styles.filterContent} showsVerticalScrollIndicator={false}>
-            {/* Search */}
-            <View style={styles.searchSection}>
-              <View style={styles.searchContainer}>
-                <Ionicons name="search-outline" size={20} color="#868e96" style={styles.searchIcon} />
-                <TextInput
-                  placeholder="Tìm kiếm hoạt động..."
-                  value={searchText}
-                  onChangeText={handleSearchChange}
-                  style={styles.searchInput}
-                  placeholderTextColor="#868e96"
-                />
-                {searchText.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearSearchButton}>
-                    <Ionicons name="close-circle" size={20} color="#868e96" />
+          <ScrollView style={{ paddingHorizontal: 16 }}>
+
+            {/* SEARCH / TITLE */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tìm kiếm</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nhập từ khóa..."
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+            </View>
+
+            {/* STATUS */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Trạng thái</Text>
+              <View style={styles.pillContainer}>
+                {statusOptions.map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[
+                      styles.pill,
+                      filters.status === s && styles.pillActive,
+                    ]}
+                    onPress={() => handleSelect('status', s)}
+                  >
+                    <Text
+                      style={[
+                        styles.pillText,
+                        filters.status === s && styles.pillTextActive,
+                      ]}
+                    >
+                      {s}
+                    </Text>
                   </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            {/* Status */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="flag-outline" size={20} color="#3f2b96" />
-                <Text style={styles.sectionTitle}>Tình trạng tham gia</Text>
-              </View>
-              <View style={styles.pillContainer}>
-                {filterOptions.status.map(status => (
-                  <FilterPill key={status} category="status" value={status} />
                 ))}
               </View>
             </View>
 
-            {/* Organization */}
+            {/* FIELD */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="business-outline" size={20} color="#3f2b96" />
-                <Text style={styles.sectionTitle}>Đơn vị tổ chức</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Lĩnh vực</Text>
               <View style={styles.pillContainer}>
-                {orgUnits.map(org => (
-                  <FilterPill key={org._id} category="organization" value={org.name} />
+                {fields.map((f) => (
+                  <TouchableOpacity
+                    key={f._id}
+                    style={[
+                      styles.pill,
+                      filters.field_id === f._id && styles.pillActive,
+                    ]}
+                    onPress={() => handleSelect('field_id', f._id)}
+                  >
+                    <Text
+                      style={[
+                        styles.pillText,
+                        filters.field_id === f._id && styles.pillTextActive,
+                      ]}
+                    >
+                      {f.name}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
 
-            {/* Field */}
+            {/* ORG UNITS */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="grid-outline" size={20} color="#3f2b96" />
-                <Text style={styles.sectionTitle}>Lĩnh vực</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Khoa / Tổ chức</Text>
               <View style={styles.pillContainer}>
-                {filterOptions.field.map(field => (
-                  <FilterPill key={field} category="field" value={field} />
+                {orgUnits.map((u) => (
+                  <TouchableOpacity
+                    key={u._id}
+                    style={[
+                      styles.pill,
+                      filters.org_unit_id === u._id && styles.pillActive,
+                    ]}
+                    onPress={() => handleSelect('org_unit_id', u._id)}
+                  >
+                    <Text
+                      style={[
+                        styles.pillText,
+                        filters.org_unit_id === u._id && styles.pillTextActive,
+                      ]}
+                    >
+                      {u.name}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
           </ScrollView>
 
-          {/* Footer */}
+          {/* FOOTER */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.applyButton, getSelectedCount() === 0 && styles.applyButtonDisabled]}
-              onPress={handleApply}
-              disabled={getSelectedCount() === 0}
-            >
-              <Text style={styles.applyText}>
-                Áp dụng {getSelectedCount() > 0 && `(${getSelectedCount()})`}
-              </Text>
+            <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
+              <Text style={styles.resetText}>Đặt lại</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
+              <Text style={styles.applyText}>Áp dụng</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
     </Modal>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  container: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f3f5' },
-  closeButton: { padding: 4, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#343a40' },
-  resetButton: { padding: 8 },
-  resetText: { color: '#3f2b96', fontSize: 16, fontWeight: '600' },
-  filterContent: { padding: 20 },
-  searchSection: { marginBottom: 24 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8f9fa', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 2, borderColor: '#e9ecef' },
-  searchIcon: { marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, color: '#343a40', padding: 0 },
-  clearSearchButton: { padding: 4 },
-  section: { marginBottom: 28 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#343a40', marginLeft: 12 },
-  pillContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: '#f8f9fa', borderWidth: 2, borderColor: '#e9ecef', marginRight: 12, marginBottom: 12 },
-  pillSelected: { backgroundColor: '#3f2b96', borderColor: '#3f2b96' },
-  pillText: { color: '#495057', fontSize: 14, fontWeight: '500' },
-  pillTextSelected: { color: 'white', fontWeight: '600' },
-  pillIcon: { marginLeft: 6 },
-  footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#f1f3f5', backgroundColor: 'white' },
-  applyButton: { backgroundColor: '#3f2b96', paddingVertical: 16, borderRadius: 12, justifyContent: 'center', alignItems: 'center', shadowColor: '#3f2b96', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  applyButtonDisabled: { backgroundColor: '#adb5bd', shadowOpacity: 0, elevation: 0 },
-  applyText: { color: 'white', fontSize: 16, fontWeight: '700' },
-});
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalBox: {
+    height: '82%',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingTop: 14,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
 
-export default FilterModal;
+  section: {
+    marginVertical: 14,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+
+  input: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+  },
+
+  pillContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  pill: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  pillActive: {
+    backgroundColor: '#3f2b96',
+    borderColor: '#3f2b96',
+  },
+  pillText: {
+    color: '#333',
+  },
+  pillTextActive: {
+    color: '#fff',
+  },
+
+  footer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderTopWidth: 1,
+    borderColor: '#eee',
+  },
+
+  resetBtn: {
+    flex: 1,
+    padding: 14,
+    backgroundColor: '#eee',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  resetText: {
+    color: '#444',
+  },
+
+  applyBtn: {
+    flex: 1,
+    marginLeft: 10,
+    padding: 14,
+    backgroundColor: '#3f2b96',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  applyText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+});

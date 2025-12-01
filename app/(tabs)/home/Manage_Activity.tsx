@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import EventCard from '../../../components/Activity_Card';
 import FilterModal from '../../../components/Filter_Activity';
 import {
@@ -32,35 +33,47 @@ export interface Event {
 
 const ManageActivity: React.FC = () => {
   const navigation = useNavigation();
-  const [eventsData, setEventsData] = useState<Activity[]>([]);
+  const [events, setEvents] = useState<Activity[]>([]);
   const [studentId, setStudentId] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string | null>>({});
 
-  // Lấy studentId
+  // ===========================
+  // Lấy student ID trong AsyncStorage
+  // ===========================
   useEffect(() => {
-    const fetchStudentId = async () => {
+    const loadStudent = async () => {
       const id = await AsyncStorage.getItem('student_id');
       setStudentId(id);
     };
-    fetchStudentId();
+    loadStudent();
   }, []);
 
-  // Lấy tất cả hoạt động
-  useEffect(() => {
+  // ===========================
+  // Load toàn bộ hoạt động
+  // ===========================
+  const fetchAllActivities = async () => {
     if (!studentId) return;
 
-    const fetchActivities = async () => {
-      setIsLoading(true);
-      const res = await getActivitiesByStudentId(studentId);
-      if (res.success && res.data) setEventsData(res.data);
-      setIsLoading(false);
-    };
-    fetchActivities();
+    setIsLoading(true);
+    const res = await getActivitiesByStudentId(studentId);
+
+    if (res.success && res.data) {
+      setEvents(res.data);
+    }
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (studentId) fetchAllActivities();
   }, [studentId]);
 
-  // Map trạng thái frontend -> backend nếu cần
+  // ==================================
+  // Map trạng thái từ UI → backend
+  // ==================================
   const statusMapToBackend: Record<string, string> = {
     'Đã đăng ký': 'pending',
     'Đã duyệt': 'approved',
@@ -68,42 +81,43 @@ const ManageActivity: React.FC = () => {
     'Đã tham gia': 'attendanced',
   };
 
+  // ===========================
+  // Áp dụng lọc
+  // ===========================
   const handleApplyFilters = async (filters: Record<string, string | null>) => {
     if (!studentId) return;
-    console.log('Applying filters:', filters);
-    setActiveFilters(filters);
+
     setIsModalVisible(false);
+    setActiveFilters(filters);
+
     setIsLoading(true);
 
-    // Lọc chỉ lấy key có giá trị string
+    // Chuyển filters → apiFilters
     const apiFilters: Record<string, string> = {};
+
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) {
-        if (key === 'status') {
-          apiFilters[key] = statusMapToBackend[value] || value;
-        } else if (['field_id', 'org_unit_id', 'title'].includes(key)) {
-          apiFilters[key] = value;
-        }
-      }
+      if (!value) return;
+      if (key === 'status') apiFilters[key] = statusMapToBackend[value] || value;
+      else apiFilters[key] = value;
     });
 
     const hasFilter = Object.keys(apiFilters).length > 0;
 
-    let res;
-    if (!hasFilter) {
-      res = await getActivitiesByStudentId(studentId);
-    } else {
-      res = await filterActivitiesByStudent(studentId, apiFilters);
-    }
+    const res = hasFilter
+      ? await filterActivitiesByStudent(studentId, apiFilters)
+      : await getActivitiesByStudentId(studentId); // Nếu reset thì load tất cả
 
-    if (res.success && res.data) setEventsData(res.data);
+    if (res.success && res.data) setEvents(res.data);
 
     setIsLoading(false);
   };
 
-  // Map Activity -> Event
-  const eventsForCard: Event[] = eventsData.map((a) => {
-    let status = '';
+  // ===========================
+  // Convert Activity → EventCard data
+  // ===========================
+  const eventsForCard: Event[] = events.map((a) => {
+    let status = 'Không rõ trạng thái';
+
     if (a.attendance) {
       status = 'Đã tham gia';
     } else if (a.registration?.status) {
@@ -111,10 +125,7 @@ const ManageActivity: React.FC = () => {
         case 'pending': status = 'Đã đăng ký'; break;
         case 'approved': status = 'Đã duyệt'; break;
         case 'rejected': status = 'Đã từ chối'; break;
-        default: status = 'Không rõ trạng thái';
       }
-    } else {
-      status = 'Không rõ trạng thái';
     }
 
     return {
@@ -133,41 +144,49 @@ const ManageActivity: React.FC = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor="#3f2b96" barStyle="light-content" />
 
+      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>Quản lý hoạt động</Text>
-          <View style={styles.placeholder} />
+          <View style={{ width: 24 }} />
         </View>
       </View>
 
-      <View style={styles.filterContainer}>
-        <TouchableOpacity style={styles.filterButton} onPress={() => setIsModalVisible(true)}>
+      {/* FILTER BUTTON */}
+      <View style={styles.filterWrapper}>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setIsModalVisible(true)}
+        >
           <Ionicons name="filter-outline" size={20} color="#fff" />
           <Text style={styles.filterButtonText}>Bộ lọc & Tìm kiếm</Text>
         </TouchableOpacity>
       </View>
 
+      {/* LIST */}
       {isLoading ? (
         <ActivityIndicator size="large" color="#3f2b96" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={eventsForCard}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <View style={styles.eventCardWrapper}>
+            <View style={{ marginBottom: 8 }}>
               <EventCard event={item} />
             </View>
           )}
-          contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={() => (
-            <Text style={styles.emptyText}>Không tìm thấy hoạt động nào phù hợp.</Text>
-          )}
+          ListEmptyComponent={
+            <Text style={styles.empty}>Không tìm thấy hoạt động phù hợp.</Text>
+          }
         />
       )}
 
+      {/* MODAL */}
       <FilterModal
         isVisible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
@@ -182,15 +201,44 @@ export default ManageActivity;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0f0f0' },
+
   header: { backgroundColor: '#3f2b96', paddingTop: 50, paddingBottom: 12 },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
   backButton: { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', textAlign: 'center', flex: 1 },
-  placeholder: { width: 24, height: 24 },
-  filterContainer: { padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
-  filterButton: { flexDirection: 'row', backgroundColor: '#3f2b96', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  filterButtonText: { color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 8 },
-  listContainer: { padding: 16 },
-  eventCardWrapper: { marginBottom: 6 },
-  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#666' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+
+  filterWrapper: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  filterButton: {
+    flexDirection: 'row',
+    backgroundColor: '#3f2b96',
+    paddingVertical: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+
+  list: { padding: 16 },
+
+  empty: {
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 16,
+    color: '#666',
+  },
 });
