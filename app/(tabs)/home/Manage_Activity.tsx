@@ -15,7 +15,7 @@ import {
 import EventCard from '../../../components/Activity_Card';
 import FilterModal from '../../../components/Filter_Activity';
 import {
-  Activity,
+  StudentActivity,
   filterActivitiesByStudent,
   getActivitiesByStudentId,
 } from '../../../services/activity';
@@ -33,16 +33,13 @@ export interface Event {
 
 const ManageActivity: React.FC = () => {
   const navigation = useNavigation();
-  const [events, setEvents] = useState<Activity[]>([]);
+  const [events, setEvents] = useState<StudentActivity[]>([]);
   const [studentId, setStudentId] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string | null>>({});
 
-  // ===========================
-  // Lấy student ID trong AsyncStorage
-  // ===========================
   useEffect(() => {
     const loadStudent = async () => {
       const id = await AsyncStorage.getItem('student_id');
@@ -51,9 +48,6 @@ const ManageActivity: React.FC = () => {
     loadStudent();
   }, []);
 
-  // ===========================
-  // Load toàn bộ hoạt động
-  // ===========================
   const fetchAllActivities = async () => {
     if (!studentId) return;
 
@@ -71,9 +65,6 @@ const ManageActivity: React.FC = () => {
     if (studentId) fetchAllActivities();
   }, [studentId]);
 
-  // ==================================
-  // Map trạng thái từ UI → backend
-  // ==================================
   const statusMapToBackend: Record<string, string> = {
     'Đã đăng ký': 'pending',
     'Đã duyệt': 'approved',

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -12,13 +13,20 @@ export interface Event {
   img?: string;
 }
 
+
+
 interface EventCardProps {
   event: Event;
 }
 
 const Activity_Card: React.FC<EventCardProps> = ({ event }) => {
   const statusColor = "#3f2b96";
-
+  const handleDetailPress = () => {
+  router.push({
+    pathname: "/home/Activity_details",
+    params: { eventId: event.id },
+  });
+};
   return (
     <View style={styles.card}>
       {/* Hình ảnh */}
@@ -49,7 +57,7 @@ const Activity_Card: React.FC<EventCardProps> = ({ event }) => {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.detailButton}>
+        <TouchableOpacity style={styles.detailButton} onPress={handleDetailPress}>
           <Text style={styles.detailButtonText}>Chi tiết</Text>
         </TouchableOpacity>
       </View>
