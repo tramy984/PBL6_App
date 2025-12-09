@@ -1,8 +1,10 @@
+// screens/ActivityDetailsScreen.tsx
 import { MaterialIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -13,29 +15,55 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityDetails, getActivityDetailsById } from "../../../services/activity";
+import {
+  createFeedback,
+  Feedback,
+  getFeedbackByStudentActivity,
+} from "../../../services/feedback";
 
-// --- ReviewModal ---
+/* ------------------ ReviewModal (internal to this file) ------------------ */
 interface ReviewModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (rating: number, content: string) => void;
   activityTitle: string;
+  initialRating?: number;
+  initialContent?: string;
 }
 
-const ReviewModal: React.FC<ReviewModalProps> = ({ visible, onClose, onSubmit, activityTitle }) => {
-  const [rating, setRating] = useState(0);
-  const [content, setContent] = useState("");
+const ReviewModal: React.FC<ReviewModalProps> = ({
+  visible,
+  onClose,
+  onSubmit,
+  activityTitle,
+  initialRating = 0,
+  initialContent = "",
+}) => {
+  const [rating, setRating] = useState<number>(initialRating);
+  const [content, setContent] = useState<string>(initialContent);
+
+  // mỗi lần mở modal, set lại giá trị từ props
+  useEffect(() => {
+    if (visible) {
+      setRating(initialRating || 0);
+      setContent(initialContent || "");
+    }
+  }, [visible, initialRating, initialContent]);
 
   const handleStarPress = (value: number) => setRating(value);
+
   const handleSubmit = () => {
+    if (rating <= 0) {
+      Alert.alert("Thiếu thông tin", "Vui lòng chọn số sao đánh giá.");
+      return;
+    }
     onSubmit(rating, content);
-    setRating(0);
-    setContent("");
-    onClose();
+    // don't reset here — parent will reload feedback and modal will be closed by parent
   };
 
   return (
@@ -55,12 +83,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ visible, onClose, onSubmit, a
             <Text style={modalStyles.label}>⭐ Đánh giá của bạn</Text>
             <View style={modalStyles.starsRow}>
               {[1, 2, 3, 4, 5].map(i => (
-                <TouchableOpacity key={i} onPress={() => handleStarPress(i)}>
-                  <MaterialIcons
-                    name={i <= rating ? "star" : "star-border"}
-                    size={32}
-                    color="#FFD700"
-                  />
+                <TouchableOpacity key={i} onPress={() => handleStarPress(i)} style={{ paddingHorizontal: 6 }}>
+                  <MaterialIcons name={i <= rating ? "star" : "star-border"} size={32} color="#FFD700" />
                 </TouchableOpacity>
               ))}
             </View>
@@ -106,30 +130,86 @@ const modalStyles = StyleSheet.create({
   submitText: { color: "#fff", fontWeight: "bold" }
 });
 
-// --- ActivityDetailsScreen ---
-const ActivityDetailsScreen = () => {
+/* ------------------ ActivityDetailsScreen ------------------ */
+const ActivityDetailsScreen: React.FC = () => {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const [data, setData] = useState<ActivityDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [reviewVisible, setReviewVisible] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const [reviewVisible, setReviewVisible] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    if (eventId) loadDetails(eventId);
+    if (eventId) {
+      loadDetails(eventId);
+      loadFeedbackForActivity(eventId);
+    }
   }, [eventId]);
 
   const loadDetails = async (id: string) => {
     setLoading(true);
     const res = await getActivityDetailsById(id);
-    if (res.success && res.data) setData(res.data);
+    if (res.success && res.data) {
+      setData(res.data);
+    } else {
+      Alert.alert("Lỗi", res.message || "Không lấy được chi tiết hoạt động");
+    }
     setLoading(false);
   };
 
-  const handleReviewSubmit = (rating: number, content: string) => {
-    console.log("Rating:", rating, "Content:", content);
-    // TODO: Gọi API gửi đánh giá
+  const loadFeedbackForActivity = async (activityId: string) => {
+    try {
+      const studentId = await AsyncStorage.getItem("student_id");
+      if (!studentId) {
+        setFeedback(null);
+        return;
+      }
+      const res = await getFeedbackByStudentActivity(studentId, activityId);
+      if (res.success) {
+        setFeedback(res.data || null);
+      } else {
+        // không hiển thị lỗi nặng, chỉ log
+        console.warn("Load feedback error:", res.message);
+        setFeedback(null);
+      }
+    } catch (e) {
+      console.warn("Load feedback failed:", e);
+      setFeedback(null);
+    }
   };
 
-  const formatDate = (dateString: string) => {
+  const handleReviewSubmit = async (rating: number, content: string) => {
+    if (!eventId) {
+      Alert.alert("Lỗi", "Không có activityId");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await createFeedback({
+        studentId: await AsyncStorage.getItem("student_id") || "",
+        activityId: eventId,
+        rating,
+        content
+      });
+      if (res.success) {
+        // cập nhật local feedback và đóng modal
+        setFeedback(res.data || null);
+        Alert.alert("Thành công", "Gửi đánh giá thành công");
+        setReviewVisible(false);
+      } else {
+        Alert.alert("Lỗi", res.message || "Gửi đánh giá thất bại");
+      }
+    } catch (e: any) {
+      console.error("Submit feedback error:", e);
+      Alert.alert("Lỗi", "Có lỗi xảy ra, thử lại sau");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "";
     const d = new Date(dateString);
     return d.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
   };
@@ -155,7 +235,13 @@ const ActivityDetailsScreen = () => {
 
       <ScrollView style={styles.content}>
         {/* Banner */}
-        <Image source={{ uri: data.activity.activity_image }} style={styles.banner} resizeMode="cover" />
+        {data.activity.activity_image ? (
+          <Image source={{ uri: data.activity.activity_image }} style={styles.banner} resizeMode="cover" />
+        ) : (
+          <View style={[styles.banner, { justifyContent: "center", alignItems: "center", backgroundColor: "#eee" }]}>
+            <Text>Không có ảnh</Text>
+          </View>
+        )}
 
         {/* Overview */}
         <View style={styles.section}>
@@ -185,7 +271,7 @@ const ActivityDetailsScreen = () => {
             <MaterialIcons name="location-on" size={18} color="#007AFF" style={styles.detailIcon} />
             <View>
               <Text style={styles.detailLabel}>Địa điểm</Text>
-              <Text style={styles.detailValue}>{data.activity.location}</Text>
+              <Text style={styles.detailValue}>{data.activity.location || "Chưa có"}</Text>
             </View>
           </View>
 
@@ -232,10 +318,34 @@ const ActivityDetailsScreen = () => {
           )}
         </View>
 
+        {/* Quick feedback preview */}
+        <View style={[styles.section, { paddingHorizontal: 18 }]}>
+          <Text style={{ fontWeight: "700", marginBottom: 8 }}>Đánh giá của bạn</Text>
+          {feedback && (
+            <>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <MaterialIcons key={idx} name={idx < (feedback.rating || 0) ? "star" : "star-border"} size={20} color="#FFD700" />
+                ))}
+              </View>
+              <Text style={{ color: "#333" }}>{feedback.content || "Không có nội dung"}</Text>
+              <Text style={{ marginTop: 8, color: "#999", fontSize: 12 }}>
+                {feedback.updatedAt ? `Cập nhật: ${formatDate(feedback.updatedAt)}` : (feedback.createdAt ? `Tạo: ${formatDate(feedback.createdAt)}` : "")}
+              </Text>
+            </>
+          ) 
+        }
+        </View>
+
         {/* Action button */}
-        <TouchableOpacity style={styles.primaryButton} onPress={() => setReviewVisible(true)}>
-          <Text style={styles.primaryButtonText}>Đánh giá hoạt động</Text>
-        </TouchableOpacity>
+        {
+          !feedback && (
+            <TouchableOpacity style={styles.primaryButton} onPress={() => setReviewVisible(true)}>
+              <Text style={styles.primaryButtonText}>{ "Đánh giá hoạt động"}</Text>
+            </TouchableOpacity>
+          )
+        }
+       
       </ScrollView>
 
       {/* Review Modal */}
@@ -245,6 +355,8 @@ const ActivityDetailsScreen = () => {
           onClose={() => setReviewVisible(false)}
           onSubmit={handleReviewSubmit}
           activityTitle={data.activity.title}
+          initialRating={feedback?.rating}
+          initialContent={feedback?.content}
         />
       )}
     </SafeAreaView>
@@ -253,7 +365,7 @@ const ActivityDetailsScreen = () => {
 
 export default ActivityDetailsScreen;
 
-// --- Styles ---
+/* ------------------ Styles ------------------ */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F5F5" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF" },

@@ -107,7 +107,9 @@ export default function Home() {
           <Text style={styles.name}>{user.full_name}</Text>
           <Text style={styles.email}>{user.email}</Text>
         </View>
-        <Ionicons name="notifications-outline" size={28} color="#fff" />
+        <TouchableOpacity onPress={() => router.push("/home/Notifations")}>
+          <Ionicons name="notifications-outline" size={28} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Menu */}

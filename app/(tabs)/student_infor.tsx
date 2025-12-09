@@ -190,6 +190,9 @@ const StudentInfoScreen: React.FC = () => {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
         <Text>Không có dữ liệu sinh viên</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={28} color="#fff" />
+        </TouchableOpacity>
       </View>
     );
 
