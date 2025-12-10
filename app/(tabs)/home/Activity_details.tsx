@@ -186,11 +186,12 @@ const ActivityDetailsScreen: React.FC = () => {
     }
     setSubmitting(true);
     try {
+      console.log("Submitting feedback:", { rating, content, eventId });
       const res = await createFeedback({
-        studentId: await AsyncStorage.getItem("student_id") || "",
-        activityId: eventId,
+        student_id: await AsyncStorage.getItem("student_id") || "",
+        activity_id: eventId,
         rating,
-        content
+        comment: content,
       });
       if (res.success) {
         // cập nhật local feedback và đóng modal

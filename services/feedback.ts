@@ -68,10 +68,10 @@ export const getFeedbackByStudentActivity = async (
 // =============================
 
 export const createFeedback = async (payload: {
-  studentId: string;
-  activityId: string;
+  student_id: string;
+  activity_id: string;
   rating: number;
-  content: string;
+  comment: string;
 }): Promise<ApiResponse<Feedback>> => {
   try {
     const headers = await getAuthHeaders();

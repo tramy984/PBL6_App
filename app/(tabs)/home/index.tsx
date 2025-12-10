@@ -136,7 +136,11 @@ export default function Home() {
       case "evidence":
         router.push("/home/evidence");
         break;
-      
+      case "pvcd_record":
+        router.push("/home/PVCD_Record");
+        break;
+      case "manage_activity":
+        router.push("/home/Manage_Activity");
       default:
         console.log("Chức năng chưa triển khai:", item.label);
     }
