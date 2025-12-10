@@ -18,6 +18,7 @@ import {
   getStudentInfo,
   StudentProfile,
 } from "../../../services/Student_Infor";
+import { getNotifications } from "../../../services/notifations";
 
 interface MenuItem {
   icon: string;
@@ -29,10 +30,16 @@ interface MenuItem {
 export default function Home() {
   const [user, setUser] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const router = useRouter();
 
   const allMenuItems: MenuItem[] = [
-    { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động",navigateTo: "manage_activity"  },
+    {
+      key: "manage",
+      icon: "briefcase-outline",
+      label: "Quản lý hoạt động",
+      navigateTo: "manage_activity",
+    },
     { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
     {
       key: "upload",
@@ -53,23 +60,22 @@ export default function Home() {
       navigateTo: "change_password",
     },
   ];
+
+  // Load student info
   useEffect(() => {
     const loadStudentInfo = async () => {
       try {
         setLoading(true);
 
-        // Lấy user_id từ AsyncStorage
         const userId = await AsyncStorage.getItem("user_id");
         if (!userId) {
           Alert.alert("Lỗi", "Chưa đăng nhập");
           return;
         }
 
-        // Lấy thông tin sinh viên từ API
         const data = await getStudentInfo(userId);
         setUser(data);
 
-        // Lưu student_id vào AsyncStorage
         if (data._id) {
           await AsyncStorage.setItem("student_id", data._id);
         }
@@ -83,22 +89,39 @@ export default function Home() {
 
     loadStudentInfo();
   }, []);
+
+  // Load unread notifications badge
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUnread = async () => {
       try {
-        const user_id = await AsyncStorage.getItem("user_id");
-        if (!user_id) return;
-        const data = await getStudentInfo(user_id);
-        setUser(data);
-        await AsyncStorage.setItem("student_id", data._id);
+        const res = await getNotifications();
+        if (res.success) {
+          setUnreadCount(res.data.unread_count || 0);
+        }
       } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+        console.error("Lỗi lấy unread notifications:", err);
       }
     };
-    fetchUserData();
+
+    fetchUnread();
+
+    // Optional: update every 10s
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handlePress = (item: MenuItem) => {
+    switch (item.navigateTo) {
+      case "change_password":
+        router.push("/home/change_password");
+        break;
+      case "evidence":
+        router.push("/home/evidence");
+        break;
+      default:
+        console.log("Chức năng chưa triển khai:", item.label);
+    }
+  };
 
   if (loading) {
     return (
@@ -125,23 +148,6 @@ export default function Home() {
     );
   }
 
-  // Ẩn menu "Duyệt minh chứng" nếu không phải lớp trưởng
-  const menuItems = allMenuItems;
-
-  const handlePress = (item: MenuItem) => {
-    switch (item.navigateTo) {
-      case "change_password":
-        router.push("/home/change_password");
-        break;
-      case "evidence":
-        router.push("/home/evidence");
-        break;
-      
-      default:
-        console.log("Chức năng chưa triển khai:", item.label);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#3f2b96" barStyle="light-content" />
@@ -160,8 +166,20 @@ export default function Home() {
           <Text style={styles.name}>{user.full_name}</Text>
           <Text style={styles.email}>{user.email}</Text>
         </View>
+
+        {/* Notification Icon + Badge */}
         <TouchableOpacity onPress={() => router.push("/home/Notifations")}>
-          <Ionicons name="notifications-outline" size={28} color="#fff" />
+          <View>
+            <Ionicons name="notifications-outline" size={28} color="#fff" />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -170,7 +188,7 @@ export default function Home() {
         contentContainerStyle={styles.menuContainer}
         showsVerticalScrollIndicator={false}
       >
-        {menuItems.map((item) => (
+        {allMenuItems.map((item) => (
           <TouchableOpacity
             key={item.key}
             style={styles.menuItem}
@@ -225,6 +243,26 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
   },
+
+  // Badge
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "red",
+    borderRadius: 12,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 2,
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+
   menuContainer: {
     paddingVertical: 20,
   },
@@ -249,6 +287,5 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 14,
     color: "#3f2b96",
-    flexShrink: 1,
   },
 });

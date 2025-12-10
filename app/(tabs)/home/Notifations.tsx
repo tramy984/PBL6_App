@@ -2,14 +2,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { getNotifications, readAllNotifications } from "../../../services/notifations";
+import {
+  getNotifications,
+  readAllNotifications,
+} from "../../../services/notifations";
 
 const ICON = "📢";
 const ITEMS_PER_PAGE = 10;
@@ -152,7 +155,7 @@ export default function ReceiveNotification() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  container: { flex: 1, padding: 16, backgroundColor: "#fff", paddingTop: 40 },
 
   headerSection: { marginBottom: 16 },
 
@@ -196,5 +199,3 @@ const styles = StyleSheet.create({
   pageBtn: { fontSize: 20 },
   pageNumber: { fontSize: 16, fontWeight: "bold" },
 });
-
-
