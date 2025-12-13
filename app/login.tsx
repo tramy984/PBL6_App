@@ -52,7 +52,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0} // điều chỉnh khoảng cách
+      keyboardVerticalOffset={60} // điều chỉnh khoảng cách
     >
       <ScrollView
         contentContainerStyle={styles.container}
