@@ -30,21 +30,18 @@ interface FilterModalProps {
   onClose: () => void;
   onApply: (filters: Record<string, string | null>) => void;
   initialFilters: Record<string, string | null>;
+  statusOptions: string[]; 
 }
-
-const statusOptions = ['Đã đăng ký', 'Đã được duyệt', 'Đã từ chối', 'Đã tham gia'];
 
 export default function FilterModal({
   isVisible,
   onClose,
   onApply,
   initialFilters,
+  statusOptions,
 }: FilterModalProps) {
-  const [filters, setFilters] = useState(initialFilters);
-
-  // searchText chính là title theo API
-  const [searchText, setSearchText] = useState(initialFilters.title || '');
-
+  const [filters, setFilters] = useState<Record<string, string | null>>({});
+  const [searchText, setSearchText] = useState('');
   const [fields, setFields] = useState<Field[]>([]);
   const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([]);
 
@@ -90,8 +87,8 @@ export default function FilterModal({
 
   useEffect(() => {
     if (isVisible) {
-      setFilters(initialFilters);
-      setSearchText(initialFilters.title || '');
+      setFilters(initialFilters || {});
+      setSearchText(initialFilters?.title || '');
       fetchData();
     }
   }, [isVisible]);
@@ -105,7 +102,7 @@ export default function FilterModal({
 
   const handleApply = () => {
     onApply({
-      status: filters.status || null,
+      status: filters.status || null, // 👈 status tiếng Việt từ ngoài
       org_unit_id: filters.org_unit_id || null,
       field_id: filters.field_id || null,
       title: searchText || null,
@@ -139,8 +136,7 @@ export default function FilterModal({
           </View>
 
           <ScrollView style={{ paddingHorizontal: 16 }}>
-
-            {/* SEARCH / TITLE */}
+            {/* SEARCH */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Tìm kiếm</Text>
               <TextInput
@@ -203,7 +199,7 @@ export default function FilterModal({
               </View>
             </View>
 
-            {/* ORG UNITS */}
+            {/* ORG UNIT */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Khoa / Tổ chức</Text>
               <View style={styles.pillContainer}>
@@ -245,6 +241,7 @@ export default function FilterModal({
     </Modal>
   );
 }
+
 
 const styles = StyleSheet.create({
   overlay: {

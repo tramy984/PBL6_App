@@ -95,9 +95,7 @@ const getAuthHeaders = async (): Promise<{ Authorization: string }> => {
   return { Authorization: `Bearer ${token}` };
 };
 
-/* =========================
-   5. API: Lấy danh sách hoạt động sinh viên
-========================= */
+
 export const getActivitiesByStudentId = async (
   studentId: string
 ): Promise<ApiResponse<StudentActivity[]>> => {
@@ -117,9 +115,7 @@ export const getActivitiesByStudentId = async (
   }
 };
 
-/* =========================
-   6. API: Lọc hoạt động sinh viên
-========================= */
+
 export const filterActivitiesByStudent = async (
   studentId: string,
   filters: Record<string, any>
@@ -173,6 +169,89 @@ export const getActivityDetailsById = async (
       message:
         error.response?.data?.message ||
         "Không thể lấy chi tiết hoạt động.",
+    };
+  }
+};
+
+export const getAllActivities = async (): Promise<
+  ApiResponse<StudentActivity[]>
+> => {
+  try {
+    const response: AxiosResponse<{ data: StudentActivity[] }> =
+      await api.get("/activities");
+
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    console.error("Get all activities error:", error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Lỗi kết nối đến server, vui lòng thử lại sau.",
+    };
+  }
+};
+
+export const filterActivities = async (
+  filters: Record<string, any>
+): Promise<ApiResponse<StudentActivity[]>> => {
+  try {
+    const headers = await getAuthHeaders();
+    console.log("Filtering activities with filters:", filters);
+    const response: AxiosResponse<{
+      data: StudentActivity[];
+      message?: string;
+    }> = await api.get("/activities/filter", {
+      params: filters,
+      headers,
+    });
+    return {
+      success: true,
+      data: response.data.data,
+      message: response.data.message || "Lọc hoạt động thành công.",
+    };
+  } catch (error: any) {
+    console.error("Filter activities error:", error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Không thể lọc hoạt động, vui lòng thử lại sau.",
+    };
+  }
+};
+
+export const registerActivity = async (
+  activityId: string
+): Promise<ApiResponse<any>> => {
+  try {
+    const headers = await getAuthHeaders();
+
+    const response: AxiosResponse<{
+      data: any;
+      message?: string;
+    }> = await api.post(
+      `/activities/${activityId}/register`,
+      {},
+      { headers }
+    );
+
+    return {
+      success: true,
+      data: response.data.data,
+      message:
+        response.data.message || "Đăng ký tham gia hoạt động thành công!",
+    };
+  } catch (error: any) {
+    console.error(`Register activity ${activityId} error:`, error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Không thể đăng ký tham gia hoạt động, vui lòng thử lại sau.",
     };
   }
 };

@@ -1,6 +1,14 @@
 import { router } from "expo-router";
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+/* ===================== Types ===================== */
 
 export interface Event {
   id: string;
@@ -13,28 +21,37 @@ export interface Event {
   img?: string;
 }
 
-
-
 interface EventCardProps {
   event: Event;
+  from?: "list" | "manage";
 }
 
-const Activity_Card: React.FC<EventCardProps> = ({ event }) => {
+/* ===================== Component ===================== */
+
+const Activity_Card: React.FC<EventCardProps> = ({
+  event,
+  from,
+}) => {
   const statusColor = "#3f2b96";
+
   const handleDetailPress = () => {
-  router.push({
-    pathname: "/home/Activity_details",
-    params: { eventId: event.id },
-  });
-};
+    router.push({
+      pathname: "/home/Activity_details",
+      params: {
+        eventId: event.id,
+        from: from ,
+      },
+    });
+  };
+
   return (
     <View style={styles.card}>
-      {/* Hình ảnh */}
+      {/* ---------- Image ---------- */}
       {event.img ? (
         <Image source={{ uri: event.img }} style={styles.image} />
       ) : null}
 
-      {/* Nội dung */}
+      {/* ---------- Info ---------- */}
       <View style={styles.infoContainer}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={2}>
@@ -52,18 +69,27 @@ const Activity_Card: React.FC<EventCardProps> = ({ event }) => {
           Thời gian: {event.start_time} - {event.end_time}
         </Text>
 
-        <Text style={styles.detail}>Địa điểm: {event.location}</Text>
+        <Text style={styles.detail}>
+          Địa điểm: {event.location}
+        </Text>
       </View>
 
-      {/* Footer */}
+      {/* ---------- Footer ---------- */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.detailButton} onPress={handleDetailPress}>
+        <TouchableOpacity
+          style={styles.detailButton}
+          onPress={handleDetailPress}
+        >
           <Text style={styles.detailButtonText}>Chi tiết</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
+
+export default Activity_Card;
+
+/* ===================== Styles ===================== */
 
 const styles = StyleSheet.create({
   card: {
@@ -138,5 +164,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-
-export default Activity_Card;

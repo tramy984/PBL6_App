@@ -33,7 +33,7 @@ export default function Home() {
 
   const allMenuItems: MenuItem[] = [
     { key: "manage", icon: "briefcase-outline", label: "Quản lý hoạt động",navigateTo: "manage_activity"  },
-    { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia" },
+    { key: "register", icon: "add-circle-outline", label: "Đăng ký tham gia", navigateTo: "register"  },
     {
       key: "upload",
       icon: "cloud-upload-outline",
@@ -141,6 +141,10 @@ export default function Home() {
         break;
       case "manage_activity":
         router.push("/home/Manage_Activity");
+        break;
+      case "register":
+        router.push("/home/List_activity");
+        break;
       default:
         console.log("Chức năng chưa triển khai:", item.label);
     }
